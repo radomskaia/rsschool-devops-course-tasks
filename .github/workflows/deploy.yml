@@ -5,7 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
+
   terraform-check:
     runs-on: ubuntu-latest
     steps:
@@ -19,13 +24,10 @@ jobs:
   terraform-plan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: ./.github/actions/setup-terraform-action
         with:
-          terraform_version: 1.6.6
-      - name: Terraform Init
-        run: terraform init
-        working-directory: terraform
+          aws-region: ap-southeast-1
+          role-to-assume: ${{ secrets.AWS_ROLE }}
 
       - name: Terraform Plan
         run: terraform plan
@@ -37,13 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: ./.github/actions/setup-terraform-action
         with:
-          terraform_version: 1.6.6
-      - name: Terraform Init
-        run: terraform init
-        working-directory: terraform
+          role-to-assume: ${{ secrets.AWS_ROLE }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
