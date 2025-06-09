@@ -24,6 +24,8 @@ jobs:
   terraform-plan:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: ./.github/actions/setup-terraform-action
         with:
           aws-region: ap-southeast-1
@@ -39,6 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
+      - uses: actions/checkout@v4
+
       - uses: ./.github/actions/setup-terraform-action
         with:
           role-to-assume: ${{ secrets.AWS_ROLE }}
