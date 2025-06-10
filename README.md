@@ -47,18 +47,21 @@ The project uses remote state storage for Terraform, configured in the `backend.
 2. **Review planned changes:**
 
    ```bash
+   cd terraform
    terraform plan
    ```
 
 3. **Apply changes:**
 
    ```bash
+   cd terraform
    terraform apply
    ```
 
 4. **Destroy infrastructure:**
 
    ```bash
+   cd terraform
    terraform destroy
    ```
 
