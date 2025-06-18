@@ -6,7 +6,12 @@
 - [Authentication with AWS](#authentication-with-aws)
 - [Terraform Configuration](#terraform-configuration)
   - [Backend Setup](#backend-setup)
+  - [Core Variables](#core-variables)
   - [Core Commands](#core-commands)
+- [NAT Options](#nat-options)
+- [Bastion Host](#bastion-host)
+- [Security Considerations](#security-considerations)
+- [Outputs](#outputs)
 - [Deployment Process](#deployment-process)
   - [Local Development](#local-development)
   - [CI/CD with GitHub Actions](#cicd-with-github-actions)
@@ -15,6 +20,17 @@
 ## Overview
 
 This project uses [Terraform](https://www.terraform.io/downloads.html) to automate the deployment and management of infrastructure. All infrastructure configuration is located in the `/terraform` directory.
+
+The infrastructure includes:
+
+- VPC with DNS support enabled
+- 2 public subnets across different availability zones
+- 2 private subnets across different availability zones
+- Internet Gateway for public internet access
+- Bastion host in a public subnet for secure SSH access to private resources
+- Choice between NAT Gateway (simpler but more expensive) or NAT Instance (cheaper but requires more management)
+- Security groups for controlled access
+
 
 ## Prerequisites
 
@@ -35,6 +51,18 @@ Learn more: [GitHub Actions OIDC with AWS](https://docs.github.com/en/actions/de
 ### Backend Setup
 
 The project uses remote state storage for Terraform, configured in the `backend.tf` file. This ensures secure state storage and enables collaborative work.
+
+### Core Variables
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `vpc_name` | Name of the VPC | main-vpc |
+| `vpc_cidr` | CIDR block for the VPC | 10.0.0.0/16 |
+| `public_subnet_cidrs` | CIDR blocks for public subnets | ["10.0.1.0/24", "10.0.2.0/24"] |
+| `private_subnet_cidrs` | CIDR blocks for private subnets | ["10.0.10.0/24", "10.0.11.0/24"] |
+| `nat_gateway_enabled` | Toggle between NAT Gateway (true) or NAT Instance (false) | true |
+| `bastion_key_name` | SSH key name for bastion access | bastion-key |
+
+
 
 ### Core Commands
 1. **Initialize Terraform:**
@@ -61,6 +89,31 @@ The project uses remote state storage for Terraform, configured in the `backend.
    ```bash
    terraform destroy
    ```
+
+## NAT Options
+
+This project offers two NAT implementation options:
+
+- **NAT Gateway (AWS managed)**: Simpler to manage, more reliable, but more expensive. Enabled when `nat_gateway_enabled = true`.
+- **NAT Instance (EC2-based)**: More cost-effective but requires more management. Configured with proper rules for IP forwarding. Enabled when `nat_gateway_enabled = false`.
+
+## Bastion Host
+
+The bastion host serves as a secure entry point for SSH access to instances in private subnets. It's placed in a public subnet with restricted SSH access and serves as a jump server.
+
+## Security Considerations
+
+- All resources are properly tagged
+- Security groups follow the principle of least privilege
+- SSH access is restricted to the bastion host
+- Private subnets have no direct inbound access from the internet
+
+## Outputs
+
+After applying the configuration, you can access the following outputs:
+- VPC ID
+- Public and private subnet IDs
+- Bastion host public IP (for SSH access)
 
 ## Deployment Process
 
