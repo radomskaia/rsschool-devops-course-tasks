@@ -1,58 +1,35 @@
-# Infrastructure Documentation
-
-## Table of Contents
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Authentication with AWS](#authentication-with-aws)
-- [Terraform Configuration](#terraform-configuration)
-  - [Backend Setup](#backend-setup)
-  - [Core Variables](#core-variables)
-  - [Core Commands](#core-commands)
-- [NAT Options](#nat-options)
-- [Bastion Host](#bastion-host)
-- [Security Considerations](#security-considerations)
-- [Outputs](#outputs)
-- [Deployment Process](#deployment-process)
-  - [Local Development](#local-development)
-  - [CI/CD with GitHub Actions](#cicd-with-github-actions)
-- [GitHub Repository Setup](#repository-configuration)
+# Kubernetes Cluster on AWS
 
 ## Overview
 
-This project uses [Terraform](https://www.terraform.io/downloads.html) to automate the deployment and management of infrastructure. All infrastructure configuration is located in the `/terraform` directory.
+This project deploys a 2-node Kubernetes cluster using K3s on AWS infrastructure. The deployment includes a VPC with public and private subnets, a bastion host for secure access, and necessary networking components.
 
-The infrastructure includes:
+## Prerequisites
+
+- AWS account with appropriate permissions
+- AWS CLI configured
+- Terraform >= 1.0.0
+- SSH key pair for instance access
+
+## Infrastructure Components
+
+The deployed infrastructure includes:
 
 - VPC with DNS support enabled
 - 2 public subnets across different availability zones
 - 2 private subnets across different availability zones
 - Internet Gateway for public internet access
-- Bastion host in a public subnet for secure SSH access to private resources
-- Choice between NAT Gateway (simpler but more expensive) or NAT Instance (cheaper but requires more management)
-- Security groups for controlled access
+- NAT Gateway or NAT Instance for private subnet internet access
+- Bastion hosts in a public subnet for secure SSH access
+- K3s Kubernetes cluster with 1 master node and 1 worker node
+- Security groups for controlled network access
 
+## Cluster Setup
 
-## Prerequisites
+### Terraform Configuration
 
-- Terraform CLI >= 1.6.6
-- AWS account with:
-  - S3 bucket for state storage
-  - DynamoDB table for state locking
-  - IAM Role configured with trust policy for GitHub OIDC
+Key variables that can be configured:
 
-## Authentication with AWS
-
-This project uses IAM OIDC (OpenID Connect) for authentication with AWS. This approach allows GitHub Actions to obtain temporary AWS credentials using short-lived tokens via OIDC, eliminating the need for long-lived AWS access keys in repository secrets.
-
-Learn more: [GitHub Actions OIDC with AWS](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services)
-
-## Terraform Configuration
-
-### Backend Setup
-
-The project uses remote state storage for Terraform, configured in the `backend.tf` file. This ensures secure state storage and enables collaborative work.
-
-### Core Variables
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `vpc_name` | Name of the VPC | main-vpc |
@@ -61,33 +38,42 @@ The project uses remote state storage for Terraform, configured in the `backend.
 | `private_subnet_cidrs` | CIDR blocks for private subnets | ["10.0.10.0/24", "10.0.11.0/24"] |
 | `nat_gateway_enabled` | Toggle between NAT Gateway (true) or NAT Instance (false) | true |
 | `bastion_key_name` | SSH key name for bastion access | bastion-key |
+| `k3s_version` | Version of K3s to install | v1.26.5+k3s1 |
+| `k3s_token` | Shared secret for node registration | my-secure-token |
 
+### Deployment Steps
 
-
-### Core Commands
-1. **Initialize Terraform:**
-
+1. Initialize Terraform:
    ```bash
    cd terraform
    terraform init
    ```
 
-2. **Review planned changes:**
-
+2. Plan and apply the infrastructure:
    ```bash
    terraform plan
-   ```
-
-3. **Apply changes:**
-
-   ```bash
    terraform apply
    ```
 
-4. **Destroy infrastructure:**
+3. After deployment, Terraform will output connection information.
 
+## Cluster Access
+
+### Access from Bastion Host
+
+1. SSH to the bastion host:
    ```bash
-   terraform destroy
+   ssh -i /path/to/key.pem ec2-user@<bastion-public-ip>
+   ```
+
+2. Run the setup script to configure kubectl:
+   ```bash
+   ./setup_kubectl.sh <k3s-master-private-ip>
+   ```
+
+3. Verify the cluster is running:
+   ```bash
+   kubectl get nodes
    ```
 
 ## NAT Options
@@ -97,31 +83,42 @@ This project offers two NAT implementation options:
 - **NAT Gateway (AWS managed)**: Simpler to manage, more reliable, but more expensive. Enabled when `nat_gateway_enabled = true`.
 - **NAT Instance (EC2-based)**: More cost-effective but requires more management. Configured with proper rules for IP forwarding. Enabled when `nat_gateway_enabled = false`.
 
-## Bastion Host
+### Access from Local Computer
 
-The bastion host serves as a secure entry point for SSH access to instances in private subnets. It's placed in a public subnet with restricted SSH access and serves as a jump server.
+1. Run the local access setup script:
+   ```bash
+   ./scripts/setup_local_access.sh /path/to/key.pem
+   ```
+
+1. Verify the NGINX pod is running:
+   ```bash
+   kubectl get pod nginx
+   kubectl get all --all-namespaces | grep nginx
+   ```
+
+2. To deploy additional workloads:
+   ```bash
+   kubectl apply -f your-workload.yaml
+   ```
 
 ## Security Considerations
 
-- All resources are properly tagged
-- Security groups follow the principle of least privilege
-- SSH access is restricted to the bastion host
-- Private subnets have no direct inbound access from the internet
+- All private instances are in private subnets
+- SSH access is limited to the bastion host
+- Security groups follow the principle of the least privilege
+- K3s API server is only accessible through the bastion host
 
-## Outputs
+## Troubleshooting
 
-After applying the configuration, you can access the following outputs:
-- VPC ID
-- Public and private subnet IDs
-- Bastion host public IP (for SSH access)
+- If you can't connect to the cluster, check that the SSH tunnel is running
+- If nodes are not joining, verify security group rules and check the K3s token
+- For other issues, check the logs on the respective instances:
+  ```bash
+  sudo journalctl -u k3s
+  sudo journalctl -u k3s-agent
+  ```
 
-## Deployment Process
-
-### Local Development
-
-For local development, use the Terraform core commands described above to manage infrastructure.
-
-### CI/CD with GitHub Actions
+## CI/CD with GitHub Actions
 
 The project includes GitHub Actions workflows for infrastructure deployment:
 

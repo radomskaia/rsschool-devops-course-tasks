@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+yum update -y
+
+yum install -y curl
+
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${k3s_version} K3S_URL=https://${k3s_master_ip}:6443 K3S_TOKEN=${k3s_token} sh -
+
+echo "K3s worker node setup complete!"

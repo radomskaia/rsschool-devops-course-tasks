@@ -45,11 +45,36 @@ variable "bastion_key_name" {
 variable "nat_gateway_enabled" {
   type        = bool
   description = "Enable NAT Gateway (true) or use NAT Instance (false)"
-  default     = true
+  default     = false
 }
 
 variable "nat_instance_type" {
   type        = string
   description = "Instance Type for NAT Instance"
   default     = "t2.micro"
+}
+
+
+variable "k3s_version" {
+  type        = string
+  description = "k3s version to install"
+  default     = "v1.26.5+k3s1"
+}
+
+variable "k3s_instance_type" {
+  type        = string
+  description = "Instance type for k3s nodes"
+  default     = "t2.micro"
+}
+
+variable "k3s_token" {
+  type        = string
+  description = "Token for connecting nodes to the k3s cluster"
+  default     = "my-secure-token"
+}
+
+variable "worker_count" {
+  type        = number
+  description = "Number of worker nodes k3s"
+  default     = 1
 }

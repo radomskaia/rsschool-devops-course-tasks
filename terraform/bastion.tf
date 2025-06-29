@@ -4,7 +4,9 @@ resource "aws_instance" "bastion" {
   subnet_id     = aws_subnet.public[0].id
   key_name      = var.bastion_key_name
 
-  security_groups = [aws_security_group.bastion_sg.id]
+  vpc_security_group_ids = [aws_security_group.bastion_sg.id]
+
+  user_data = templatefile("../user_data/bastion.sh", {})
 
   tags = {
     Name = "${var.vpc_name}-bastion-host"
