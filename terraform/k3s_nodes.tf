@@ -14,7 +14,7 @@ resource "aws_instance" "k3s_master" {
     Name = "${var.vpc_name}-k3s-master"
   }
 
-  depends_on = [var.nat_gateway_enabled ? aws_nat_gateway.nat[0] : aws_instance.nat_instance[0]]
+  depends_on = [aws_internet_gateway.main]
 }
 
 resource "aws_instance" "k3s_worker" {
@@ -35,5 +35,5 @@ resource "aws_instance" "k3s_worker" {
     Name = "${var.vpc_name}-k3s-worker-${count.index + 1}"
   }
 
-  depends_on = [aws_instance.k3s_master, var.nat_gateway_enabled ? aws_nat_gateway.nat[0] : aws_instance.nat_instance[0]]
+  depends_on = [aws_instance.k3s_master]
 }
