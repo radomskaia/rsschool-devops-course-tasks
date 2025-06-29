@@ -26,9 +26,9 @@ resource "aws_instance" "k3s_worker" {
   key_name               = var.bastion_key_name
 
   user_data = templatefile("../user_data/k3s_worker.sh", {
-    k3s_version    = var.k3s_version
-    k3s_master_ip  = aws_instance.k3s_master.private_ip
-    k3s_token      = var.k3s_token
+    k3s_version   = var.k3s_version
+    k3s_master_ip = aws_instance.k3s_master.private_ip
+    k3s_token     = var.k3s_token
   })
 
   tags = {

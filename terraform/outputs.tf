@@ -35,7 +35,7 @@ output "k3s_worker_private_ips" {
 
 output "k3s_connection_instructions" {
   description = "Instructions to connect to the k3s cluster"
-  value = <<EOF
+  value       = <<EOF
 1. Connect to the bastion host:
    ssh -i /path/to/your/key.pem ec2-user@${aws_eip.bastion.public_ip}
 
